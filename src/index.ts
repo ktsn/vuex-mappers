@@ -1,4 +1,4 @@
-import { Store, Commit, Dispatch } from 'vuex'
+import { Store, Commit, Dispatch, mapState } from 'vuex'
 
 export type Getter<R> = () => R
 export type Action<P, R> = P extends undefined
@@ -8,6 +8,10 @@ export type Action<P, R> = P extends undefined
 export type HasKey<K extends string> = { [_ in K]: any }
 
 export type Mapper<T> = (store: Store<any>) => T
+
+export type StateMapper<K extends string> = <T extends HasKey<K>>(
+  store: Store<any>
+) => Getter<T[K]>
 
 export type GetterMapper<K extends string> = <T extends HasKey<K>>(
   store: Store<any>
@@ -20,6 +24,32 @@ export type MutationMapper<K extends string> = <T extends HasKey<K>>(
 export type ActionMapper<K extends string> = <T extends HasKey<K>>(
   store: Store<any>
 ) => Action<T[K], Promise<any>>
+
+function mapStateWrapper(namespace: string, map: string | Function): () => any {
+  const mapper = { _: map as any }
+  if (namespace !== '') {
+    return mapState(namespace, mapper)._
+  } else {
+    return mapState(mapper)._
+  }
+}
+
+export function state<K extends string>(key: K): StateMapper<K>
+export function state<R>(map: (state: any, getters: any) => R): Mapper<() => R>
+export function state<K extends string>(
+  namespace: string,
+  key: K
+): StateMapper<K>
+export function state<R>(
+  namespace: string,
+  map: (state: any, getters: any) => R
+): Mapper<() => R>
+export function state(_namespace: string | Function, _map?: string | Function) {
+  const { namespace, map } = normalizeNamespace(_namespace, _map)
+  return (store: Store<any>) => {
+    return mapStateWrapper(namespace, map).bind({ $store: store })
+  }
+}
 
 export function getter<K extends string>(key: K): GetterMapper<K>
 export function getter<K extends string>(
