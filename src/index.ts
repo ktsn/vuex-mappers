@@ -27,9 +27,9 @@ export function getter<K extends string>(
   namespace: string,
   key: K
 ): GetterMapper<K>
-export function getter(_namespace: string, _key?: string) {
-  const key = normalizeKey(_namespace, _key)
-  return (store: Store<any>) => () => store.getters[key]
+export function getter(_namespace: string, _map?: string) {
+  const { namespace, map } = normalizeNamespace(_namespace, _map)
+  return (store: Store<any>) => () => store.getters[namespace + map]
 }
 
 export function mutation<K extends string>(key: K): MutationMapper<K>
@@ -37,9 +37,11 @@ export function mutation<K extends string>(
   namespace: string,
   key: K
 ): MutationMapper<K>
-export function mutation(_namespace: string, _key?: string) {
-  const key = normalizeKey(_namespace, _key)
-  return (store: Store<any>) => (payload: any) => store.commit(key, payload)
+export function mutation(_namespace: string, _map?: string) {
+  const { namespace, map } = normalizeNamespace(_namespace, _map)
+  return (store: Store<any>) => (payload: any) => {
+    return store.commit(namespace + map, payload)
+  }
 }
 
 export function action<K extends string>(key: K): ActionMapper<K>
@@ -47,19 +49,27 @@ export function action<K extends string>(
   namespace: string,
   key: K
 ): ActionMapper<K>
-export function action(_namespace: string, _key?: string) {
-  const key = normalizeKey(_namespace, _key)
-  return (store: Store<any>) => (payload: any) => store.dispatch(key, payload)
+export function action(_namespace: string, _map?: string) {
+  const { namespace, map } = normalizeNamespace(_namespace, _map)
+  return (store: Store<any>) => (payload: any) => {
+    return store.dispatch(namespace + map, payload)
+  }
 }
 
-function normalizeKey(namespace: string, key: string | undefined): string {
-  if (key == null) {
-    return namespace
+function normalizeNamespace<F extends Function>(
+  namespace: string,
+  map: string | F | undefined
+): { namespace: string; map: string | F } {
+  if (map == null) {
+    return {
+      namespace: '',
+      map: namespace
+    }
   }
 
   if (namespace[namespace.length - 1] !== '/') {
     namespace = namespace + '/'
   }
 
-  return namespace + key
+  return { namespace, map }
 }
