@@ -8,10 +8,6 @@ Vue.config.devtools = false
 
 Vue.use(Vuex)
 
-describe('State', () => {
-  it('returns mapped state', () => {})
-})
-
 describe('Getter', () => {
   it('returns mapped getter function', () => {
     const store = new Store({
@@ -96,6 +92,57 @@ describe('Mutation', () => {
     update('Bar')
     assert(store.state.test.message === 'Bar')
   })
+
+  it('receives mapper function', () => {
+    const store = new Store({
+      state: {
+        value: 1
+      },
+
+      mutations: {
+        increment(state, payload) {
+          state.value += payload
+        }
+      }
+    })
+
+    const incrementMapper = mutation((commit, payload: number) => {
+      commit('increment', payload * 10)
+      return 'test'
+    })
+    const increment = incrementMapper(store)
+    assert(increment(2) === 'test')
+    assert(store.state.value === 21)
+  })
+
+  it('receives mapper function with namespace', () => {
+    const store = new Store<any>({
+      modules: {
+        foo: {
+          namespaced: true,
+
+          state: {
+            message: 'Foo'
+          },
+
+          mutations: {
+            update(state, payload) {
+              state.message = payload
+            }
+          }
+        }
+      }
+    })
+
+    const updateMapper = mutation('foo', (commit, payload: string) => {
+      commit('update', payload + ' from mapper')
+      return payload
+    })
+    const update = updateMapper(store)
+
+    assert(update('Bar') === 'Bar')
+    assert(store.state.foo.message === 'Bar from mapper')
+  })
 })
 
 describe('Action', () => {
@@ -153,5 +200,68 @@ describe('Action', () => {
     const doubleAssign = mapper(store)
     doubleAssign('Bar')
     assert(store.state.test.message === 'BarBar')
+  })
+
+  it('receives mapper function', () => {
+    const store = new Store({
+      state: {
+        value: 123
+      },
+
+      mutations: {
+        increment(state, payload) {
+          state.value += payload
+        }
+      },
+
+      actions: {
+        doubleIncrement({ commit }, payload) {
+          commit('increment', payload * 2)
+        }
+      }
+    })
+
+    const mapper = action((dispatch, payload: number) => {
+      dispatch('doubleIncrement', payload * 2)
+      return payload
+    })
+    const increment = mapper(store)
+    assert(increment(10) === 10)
+    assert(store.state.value === 163)
+  })
+
+  it('receives mapper function with namespace', () => {
+    const store = new Store<any>({
+      modules: {
+        test: {
+          namespaced: true,
+
+          state: {
+            message: 'Foo'
+          },
+
+          mutations: {
+            update(state, payload) {
+              state.message = payload
+            }
+          },
+
+          actions: {
+            doubleAssign({ commit }, payload) {
+              commit('update', payload + payload)
+            }
+          }
+        }
+      }
+    })
+
+    const mapper = action('test', (dispatch, payload: string) => {
+      dispatch('doubleAssign', payload + payload)
+      return payload
+    })
+    const doubleAssign = mapper(store)
+
+    assert(doubleAssign('Bar') === 'Bar')
+    assert(store.state.test.message === 'BarBarBarBar')
   })
 })
