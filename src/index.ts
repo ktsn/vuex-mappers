@@ -10,7 +10,7 @@ export type Action<P> = P extends undefined
 
 export type HasKey<K extends string> = { [_ in K]: any }
 
-export type Mapper<P, R> = (store: Store<any>) => (payload: P) => R
+export type Mapper<T> = (store: Store<any>) => T
 
 export type GetterMapper<K extends string> = <T extends HasKey<K>>(
   store: Store<any>
@@ -37,7 +37,7 @@ export function getter(_namespace: string, _map?: string) {
 export function mutation<K extends string>(key: K): MutationMapper<K>
 export function mutation<P, R>(
   map: (commit: Commit, payload: P) => R
-): Mapper<P, R>
+): Mapper<(payload: P) => R>
 export function mutation<K extends string>(
   namespace: string,
   key: K
@@ -45,7 +45,7 @@ export function mutation<K extends string>(
 export function mutation<P, R>(
   namespace: string,
   map: (commit: Commit, payload: P) => R
-): Mapper<P, R>
+): Mapper<(payload: P) => R>
 export function mutation(
   _namespace: string | Function,
   _map?: string | Function
@@ -66,7 +66,7 @@ export function mutation(
 export function action<K extends string>(key: K): ActionMapper<K>
 export function action<P, R>(
   map: (commit: Dispatch, payload: P) => R
-): Mapper<P, R>
+): Mapper<(payload: P) => R>
 export function action<K extends string>(
   namespace: string,
   key: K
@@ -74,7 +74,7 @@ export function action<K extends string>(
 export function action<P, R>(
   namespace: string,
   map: (commit: Dispatch, payload: P) => R
-): Mapper<P, R>
+): Mapper<(payload: P) => R>
 export function action(
   _namespace: string | Function,
   _map?: string | Function
