@@ -1,12 +1,9 @@
 import { Store, Commit, Dispatch } from 'vuex'
 
 export type Getter<R> = () => R
-export type Mutation<P> = P extends undefined
-  ? (payload?: P) => void
-  : (payload: P) => void
-export type Action<P> = P extends undefined
-  ? (payload?: P) => Promise<any>
-  : (payload: P) => Promise<any>
+export type Action<P, R> = P extends undefined
+  ? (payload?: P) => R
+  : (payload: P) => R
 
 export type HasKey<K extends string> = { [_ in K]: any }
 
@@ -18,11 +15,11 @@ export type GetterMapper<K extends string> = <T extends HasKey<K>>(
 
 export type MutationMapper<K extends string> = <T extends HasKey<K>>(
   store: Store<any>
-) => Mutation<T[K]>
+) => Action<T[K], void>
 
 export type ActionMapper<K extends string> = <T extends HasKey<K>>(
   store: Store<any>
-) => Action<T[K]>
+) => Action<T[K], Promise<any>>
 
 export function getter<K extends string>(key: K): GetterMapper<K>
 export function getter<K extends string>(
