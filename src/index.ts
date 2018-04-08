@@ -1,4 +1,12 @@
-import { Store, Commit, Dispatch, mapState } from 'vuex'
+import {
+  Store,
+  Commit,
+  Dispatch,
+  mapState,
+  mapGetters,
+  mapMutations,
+  mapActions
+} from 'vuex'
 
 export type Getter<R> = () => R
 export type Action<P, R> = P extends undefined
@@ -25,13 +33,17 @@ export type ActionMapper<K extends string> = <T extends HasKey<K>>(
   store: Store<any>
 ) => Action<T[K], Promise<any>>
 
-function mapStateWrapper(namespace: string, map: string | Function): () => any {
-  const mapper = { _: map as any }
-  if (namespace !== '') {
-    return mapState(namespace, mapper)._
-  } else {
-    return mapState(mapper)._
-  }
+function createMapper(
+  vuexMapper: Function,
+  namespace: string | undefined,
+  map: string | Function
+): (store: Store<any>) => Function {
+  const mapConfig = { _: map as any }
+  const mapper =
+    namespace !== undefined
+      ? vuexMapper(namespace, mapConfig)._
+      : vuexMapper(mapConfig)._
+  return store => mapper.bind({ $store: store })
 }
 
 export function state<K extends string>(key: K): StateMapper<K>
@@ -46,9 +58,7 @@ export function state<R>(
 ): Mapper<() => R>
 export function state(_namespace: string | Function, _map?: string | Function) {
   const { namespace, map } = normalizeNamespace(_namespace, _map)
-  return (store: Store<any>) => {
-    return mapStateWrapper(namespace, map).bind({ $store: store })
-  }
+  return createMapper(mapState, namespace, map)
 }
 
 export function getter<K extends string>(key: K): GetterMapper<K>
@@ -58,7 +68,7 @@ export function getter<K extends string>(
 ): GetterMapper<K>
 export function getter(_namespace: string, _map?: string) {
   const { namespace, map } = normalizeNamespace(_namespace, _map)
-  return (store: Store<any>) => () => store.getters[namespace + map]
+  return createMapper(mapGetters, namespace, map)
 }
 
 export function mutation<K extends string>(key: K): MutationMapper<K>
@@ -78,16 +88,7 @@ export function mutation(
   _map?: string | Function
 ) {
   const { namespace, map } = normalizeNamespace(_namespace, _map)
-  if (typeof map === 'function') {
-    return (store: Store<any>) => {
-      const commit = namespacedFunction(store.commit, namespace)
-      return (payload: any) => map(commit, payload)
-    }
-  } else {
-    return (store: Store<any>) => (payload: any) => {
-      return store.commit(namespace + map, payload)
-    }
-  }
+  return createMapper(mapMutations, namespace, map)
 }
 
 export function action<K extends string>(key: K): ActionMapper<K>
@@ -107,45 +108,21 @@ export function action(
   _map?: string | Function
 ) {
   const { namespace, map } = normalizeNamespace(_namespace, _map)
-  if (typeof map === 'function') {
-    return (store: Store<any>) => {
-      const dispatch = namespacedFunction(store.dispatch, namespace)
-      return (payload: any) => map(dispatch, payload)
-    }
-  } else {
-    return (store: Store<any>) => (payload: any) => {
-      return store.dispatch(namespace + map, payload)
-    }
-  }
-}
-
-function namespacedFunction<F extends (key: string, payload: any) => any>(
-  dispatcher: F,
-  namespace: string
-): F {
-  return ((key: string, payload: any) => {
-    dispatcher(namespace + key, payload)
-  }) as F
+  return createMapper(mapActions, namespace, map)
 }
 
 function normalizeNamespace<F extends Function>(
   namespace: string | F,
   map: string | F | undefined
-): { namespace: string; map: string | F } {
+): { namespace?: string; map: string | F } {
   if (map == null) {
     return {
-      namespace: '',
       map: namespace
     }
   }
 
-  let n = namespace as string
-  if (n[n.length - 1] !== '/') {
-    n = n + '/'
-  }
-
   return {
-    namespace: n,
+    namespace: namespace as string,
     map
   }
 }
