@@ -142,8 +142,8 @@ const incDoubleAsync = action((dispatch, amount) => {
   dispatch('incAsync', amount * 2)
 })(store)
 
-inc(123)
-incAsync(123)
+incDouble(123)
+incDoubleAsync(123)
 ```
 
 ## License
